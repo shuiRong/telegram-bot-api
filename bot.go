@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/technoweenie/multipartstreamer"
+	"golang.org/x/net/proxy"
 )
 
 // BotAPI allows you to interact with the Telegram Bot API.
@@ -36,7 +37,25 @@ type BotAPI struct {
 //
 // It requires a token, provided by @BotFather on Telegram.
 func NewBotAPI(token string) (*BotAPI, error) {
-	return NewBotAPIWithClient(token, APIEndpoint, &http.Client{})
+// 	return NewBotAPIWithClient(token, APIEndpoint, &http.Client{})
+	socks5 := os.Getenv("SOCKS5_PROXY")
+	client := &http.Client{}
+	if len(socks5) > 0 {
+		tgProxyURL, err := url.Parse(socks5)
+		if err != nil {
+			log.Printf("Failed to parse proxy URL:%s\n", err)
+			return nil, err
+		}
+		tgDialer, err := proxy.FromURL(tgProxyURL, proxy.Direct)
+		if err != nil {
+			log.Printf("Failed to obtain proxy dialer: %s\n", err)
+		}
+		tgTransport := &http.Transport{
+			Dial: tgDialer.Dial,
+		}
+		client.Transport = tgTransport
+	}
+	return NewBotAPIWithClient(token, APIEndpointclient)
 }
 
 // NewBotAPIWithAPIEndpoint creates a new BotAPI instance
